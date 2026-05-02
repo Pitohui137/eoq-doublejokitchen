@@ -3,327 +3,1163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalkulator Interaktif: Economic Order Quantity (EOQ)</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Double Jo Kitchen — Inventory EOQ System</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Chosen Palette: Educational Teal & Slate -->
-    <!-- Application Structure Plan: A top-down narrative structure is used to first introduce the concept of EOQ, then present the core interactive calculator and chart for hands-on learning. This is followed by a conceptual breakdown of the costs and a summary of the formula/assumptions. This linear flow is ideal for teaching a new concept, building from theory to interactive practice and finally to contextual details. -->
-    <!-- Visualization & Content Choices: Report Info: EOQ cost trade-off -> Goal: Visualize the relationship between ordering and holding costs -> Viz/Presentation Method: Dynamic multi-line chart (Chart.js/Canvas) with a vertical line indicating EOQ -> Interaction: User manipulates sliders for D, S, and H, causing the chart and key metric cards to update in real-time -> Justification: This transforms a static formula into a dynamic system, allowing users to build a strong intuition for the cost trade-offs, which is the central lesson of the EOQ model. -->
-    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8fafc; /* slate-50 */
-            color: #1e293b; /* slate-800 */
-        }
-        .chart-container {
-            position: relative;
-            width: 100%;
-            max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
-            height: 300px;
-            max-height: 45vh;
-        }
-        @media (min-width: 768px) {
-            .chart-container {
-                height: 400px;
-            }
-        }
-        .slider-label {
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-            font-size: 0.875rem;
-            font-weight: 500;
-        }
-        .slider-value {
-            font-weight: 600;
-            color: #0f766e; /* teal-700 */
-        }
-        input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            background: #0f766e;
-            cursor: pointer;
-            border-radius: 50%;
-        }
-        input[type=range]::-moz-range-thumb {
-            width: 20px;
-            height: 20px;
-            background: #0f766e;
-            cursor: pointer;
-            border-radius: 50%;
-        }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+:root {
+    --bg:        #08080c;
+    --bg2:       #0f0f16;
+    --bg3:       #16161f;
+    --bg4:       #1c1c28;
+    --gold:      #c9a84c;
+    --gold-l:    #e2c97a;
+    --gold-d:    #7a6230;
+    --cream:     #f0e9d8;
+    --muted:     #5e5c6e;
+    --muted2:    #8a8799;
+    --border:    rgba(201,168,76,.15);
+    --border2:   rgba(255,255,255,.06);
+    --grad:      linear-gradient(135deg,#e91e8c 0%,#f97316 45%,#eab308 100%);
+    --red:       #f87171;
+    --amber:     #fbbf24;
+    --green:     #4ade80;
+    --blue:      #60a5fa;
+    --orange:    #fb923c;
+    --radius:    14px;
+    --shadow:    0 4px 32px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--cream);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");opacity:.4;pointer-events:none;z-index:0}
+.z1{position:relative;z-index:1}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:200;backdrop-filter:blur(20px);background:rgba(8,8,12,.9);border-bottom:1px solid var(--border)}
+.nav-inner{max-width:1400px;margin:auto;padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-ring{background:var(--grad);border-radius:50%;padding:2.5px;width:34px;height:34px;flex-shrink:0}
+.logo-ring .li{background:var(--bg);border-radius:50%;width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+.logo-text{font-family:'Bebas Neue';font-size:.9rem;letter-spacing:.12em;color:var(--cream);line-height:1}
+.logo-sub{font-size:.58rem;color:var(--muted2);letter-spacing:.1em;text-transform:uppercase}
+.nav-tabs{display:flex;gap:4px}
+.nav-tab{padding:6px 14px;border-radius:8px;font-size:.75rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;border:none;background:transparent;color:var(--muted2);transition:.2s}
+.nav-tab:hover{color:var(--cream);background:var(--bg3)}
+.nav-tab.active{color:var(--gold-l);background:rgba(201,168,76,.1);border:1px solid var(--border)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:999px;font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;border:none;transition:.2s;text-decoration:none}
+.btn-gold{background:var(--grad);color:#08080c}
+.btn-gold:hover{opacity:.85;transform:translateY(-1px)}
+.btn-ghost{background:transparent;color:var(--gold);border:1px solid var(--border)}
+.btn-ghost:hover{background:rgba(201,168,76,.08)}
+.btn-danger{background:rgba(248,113,113,.1);color:var(--red);border:1px solid rgba(248,113,113,.2)}
+.btn-danger:hover{background:rgba(248,113,113,.18)}
+.btn-sm{padding:5px 12px;font-size:.7rem}
+.btn-icon{padding:7px;border-radius:8px;width:32px;height:32px;justify-content:center}
+
+/* PAGE */
+.page{display:none;padding-top:68px;min-height:100vh}
+.page.active{display:block}
+.wrap{max-width:1400px;margin:auto;padding:28px 24px}
+
+/* HERO STRIP */
+.hero-strip{background:var(--bg2);border-bottom:1px solid var(--border2);padding:28px 24px 24px}
+.hs-inner{max-width:1400px;margin:auto;display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.hs-badge{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:rgba(201,168,76,.05);color:var(--gold);font-size:.65rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;padding:5px 14px;border-radius:999px;margin-bottom:10px}
+.hs-title{font-family:'Cormorant Garamond';font-size:clamp(1.6rem,3vw,2.6rem);font-weight:600;line-height:1.1;color:var(--cream)}
+.hs-title em{font-style:italic;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+/* STAT CARDS */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:28px}
+.stat-card{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:20px;position:relative;overflow:hidden;transition:.3s}
+.stat-card:hover{border-color:var(--border);transform:translateY(-2px)}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.stat-card.gold::before{background:var(--grad)}
+.stat-card.red::before{background:var(--red)}
+.stat-card.amber::before{background:var(--amber)}
+.stat-card.green::before{background:var(--green)}
+.stat-card.blue::before{background:var(--blue)}
+.sc-label{font-size:.65rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--muted2);margin-bottom:8px}
+.sc-value{font-family:'Cormorant Garamond';font-size:2rem;font-weight:700;line-height:1;color:var(--cream)}
+.sc-value.grad{background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sc-sub{font-size:.72rem;color:var(--muted);margin-top:4px}
+
+/* SECTION HEADERS */
+.sec-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.sec-title{font-family:'Cormorant Garamond';font-size:1.4rem;font-weight:600;color:var(--cream)}
+.sec-label{font-size:.65rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:4px}
+
+/* TABLE */
+.table-wrap{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);overflow:hidden}
+.tbl{width:100%;border-collapse:collapse;font-size:.83rem}
+.tbl thead th{background:var(--bg3);color:var(--muted2);font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:12px 16px;text-align:left;border-bottom:1px solid var(--border2);white-space:nowrap}
+.tbl tbody tr{border-bottom:1px solid var(--border2);transition:.2s;cursor:pointer}
+.tbl tbody tr:last-child{border-bottom:none}
+.tbl tbody tr:hover{background:rgba(201,168,76,.04)}
+.tbl tbody tr.selected{background:rgba(201,168,76,.07);border-left:2px solid var(--gold)}
+.tbl td{padding:13px 16px;vertical-align:middle;white-space:nowrap}
+.tbl td .name{font-weight:600;color:var(--cream);font-size:.87rem}
+.tbl td .unit{font-size:.7rem;color:var(--muted2);margin-top:1px}
+.tbl td .cat-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.65rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+
+/* STATUS BADGES */
+.status{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:6px;font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.status .dot{width:5px;height:5px;border-radius:50%}
+.status.ok{background:rgba(74,222,128,.1);color:var(--green);border:1px solid rgba(74,222,128,.2)}
+.status.ok .dot{background:var(--green)}
+.status.warn{background:rgba(251,191,36,.1);color:var(--amber);border:1px solid rgba(251,191,36,.2)}
+.status.warn .dot{background:var(--amber)}
+.status.reorder{background:rgba(248,113,113,.1);color:var(--red);border:1px solid rgba(248,113,113,.2)}
+.status.reorder .dot{background:var(--red)}
+
+/* MODAL */
+.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;backdrop-filter:blur(6px);align-items:flex-start;justify-content:center;padding:60px 16px 16px;overflow-y:auto}
+.modal-backdrop.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:20px;width:100%;max-width:680px;box-shadow:var(--shadow);animation:modalIn .25s ease}
+@keyframes modalIn{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
+.modal-header{padding:24px 28px 20px;border-bottom:1px solid var(--border2);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-family:'Cormorant Garamond';font-size:1.5rem;font-weight:600;color:var(--cream)}
+.modal-body{padding:24px 28px}
+.modal-footer{padding:16px 28px 24px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--border2)}
+.close-btn{width:32px;height:32px;border-radius:8px;background:var(--bg3);border:1px solid var(--border2);color:var(--muted2);cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;transition:.2s}
+.close-btn:hover{color:var(--cream);background:var(--bg4)}
+
+/* FORM */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-group.full{grid-column:1/-1}
+label.lbl{font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2)}
+label.lbl span{color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;font-size:.65rem}
+input,select,textarea{background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:10px 14px;color:var(--cream);font-family:'DM Sans';font-size:.85rem;outline:none;transition:.2s;width:100%}
+input:focus,select:focus{border-color:var(--gold-d);box-shadow:0 0 0 3px rgba(201,168,76,.1)}
+input::placeholder{color:var(--muted)}
+select option{background:var(--bg3)}
+.input-hint{font-size:.68rem;color:var(--muted);margin-top:2px}
+
+/* DETAIL PANEL */
+.detail-panel{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:28px;margin-top:20px;display:none}
+.detail-panel.open{display:block}
+.dp-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+.dp-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:24px}
+.dp-metric{background:var(--bg3);border:1px solid var(--border2);border-radius:12px;padding:16px}
+.dp-metric .m-label{font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);margin-bottom:6px}
+.dp-metric .m-value{font-family:'Cormorant Garamond';font-size:1.5rem;font-weight:700;color:var(--cream)}
+.dp-metric .m-value.gold{color:var(--gold-l)}
+.dp-metric .m-sub{font-size:.7rem;color:var(--muted);margin-top:3px}
+.chart-area{background:var(--bg3);border:1px solid var(--border2);border-radius:14px;padding:18px;margin-bottom:14px}
+.chart-area canvas{display:block;width:100%!important;height:220px!important}
+
+/* ROP VISUAL */
+.rop-visual{background:var(--bg3);border:1px solid var(--border2);border-radius:14px;padding:18px}
+.rop-bar-wrap{height:12px;background:rgba(255,255,255,.06);border-radius:6px;position:relative;margin:12px 0 8px;overflow:hidden}
+.rop-bar{height:100%;border-radius:6px;transition:width .6s ease}
+.rop-markers{display:flex;justify-content:space-between;font-size:.65rem;color:var(--muted)}
+
+/* FORMULA BOX */
+.formula-box{background:var(--bg3);border:1px solid var(--border2);border-radius:14px;padding:18px 20px}
+.formula-title{font-size:.65rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--muted2);margin-bottom:10px}
+.formula-eq{font-family:'Cormorant Garamond';font-size:1.2rem;font-weight:600;color:var(--gold-l);margin-bottom:8px}
+.formula-vars{display:flex;flex-wrap:wrap;gap:10px;font-size:.75rem;color:var(--muted2)}
+.formula-vars strong{color:var(--cream)}
+
+/* CATEGORY COLORS */
+.cat-tepung{background:rgba(251,191,36,.1);color:#fcd34d}
+.cat-gula{background:rgba(248,113,113,.1);color:#fca5a5}
+.cat-dairy{background:rgba(96,165,250,.1);color:#93c5fd}
+.cat-telur{background:rgba(251,146,60,.1);color:#fdba74}
+.cat-flavor{background:rgba(167,139,250,.1);color:#c4b5fd}
+.cat-kemasan{background:rgba(74,222,128,.1);color:#86efac}
+.cat-lainnya{background:rgba(148,163,184,.1);color:#94a3b8}
+
+/* TABS */
+.tabs{display:flex;gap:4px;padding:4px;background:var(--bg3);border-radius:12px;border:1px solid var(--border2)}
+.tab-btn{flex:1;padding:8px 16px;border-radius:9px;font-size:.75rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;border:none;background:transparent;color:var(--muted2);transition:.2s;text-align:center}
+.tab-btn.active{background:var(--bg4);color:var(--gold-l);border:1px solid var(--border)}
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+/* SCROLL TABLE */
+.tbl-scroll{overflow-x:auto}
+
+/* DIVIDER */
+hr.div{border:none;border-top:1px solid var(--border2);margin:20px 0}
+
+/* TOOLTIP */
+.tooltip-wrap{position:relative;display:inline-flex}
+.tooltip-wrap .tip{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--bg4);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:.7rem;color:var(--cream);white-space:nowrap;pointer-events:none;opacity:0;transition:.15s;z-index:10}
+.tooltip-wrap:hover .tip{opacity:1}
+
+/* ALERT */
+.alert{display:flex;gap:12px;align-items:flex-start;padding:14px 18px;border-radius:12px;font-size:.82rem;line-height:1.6;margin-bottom:18px}
+.alert.warn{background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.2);color:#fcd34d}
+.alert.info{background:rgba(96,165,250,.07);border:1px solid rgba(96,165,250,.2);color:#93c5fd}
+
+/* SUPABASE PAGE */
+.sql-block{background:var(--bg3);border:1px solid var(--border2);border-radius:14px;overflow:hidden}
+.sql-header{padding:10px 18px;background:var(--bg4);border-bottom:1px solid var(--border2);display:flex;align-items:center;justify-content:space-between;font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2)}
+.sql-body{padding:18px;overflow-x:auto;max-height:360px;overflow-y:auto}
+pre{font-family:'Courier New',monospace;font-size:.77rem;line-height:1.7;color:var(--cream);white-space:pre}
+.kw{color:#c084fc}
+.fn{color:#60a5fa}
+.str{color:#4ade80}
+.cm{color:var(--muted)}
+.ty{color:var(--amber)}
+.copy-sql-btn{cursor:pointer}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:48px 24px;color:var(--muted)}
+.empty-icon{font-size:2.5rem;margin-bottom:12px;opacity:.5}
+.empty-title{font-family:'Cormorant Garamond';font-size:1.3rem;color:var(--muted2);margin-bottom:8px}
+.empty-sub{font-size:.82rem;line-height:1.6}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+    .form-grid{grid-template-columns:1fr}
+    .dp-grid{grid-template-columns:1fr 1fr}
+    .tbl thead th:nth-child(n+6){display:none}
+    .tbl tbody td:nth-child(n+6){display:none}
+    .nav-tabs{display:none}
+}
+@media(max-width:500px){
+    .dp-grid{grid-template-columns:1fr}
+    .wrap{padding:20px 16px}
+}
+
+/* ANIMATIONS */
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.anim{animation:fadeIn .35s ease forwards}
+</style>
 </head>
-<body class="antialiased">
+<body>
 
-    <header class="bg-white shadow-sm">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center">
-            <h1 class="text-3xl font-bold text-teal-800">Kalkulator Interaktif Economic Order Quantity (EOQ)</h1>
-            <p class="text-slate-600 mt-1">Temukan Kuantitas Pesanan Optimal untuk Meminimalkan Biaya Persediaan</p>
+<!-- NAV -->
+<nav>
+<div class="nav-inner">
+    <a class="logo" href="#">
+        <div class="logo-ring"><div class="li"><span style="font-family:'Bebas Neue';font-size:9px;color:var(--gold);letter-spacing:.04em;text-align:center;line-height:1.1;">DJ<br><span style="font-size:6px;color:var(--muted2);">2018</span></span></div></div>
+        <div><div class="logo-text">Double Jo Kitchen</div><div class="logo-sub">Inventory System</div></div>
+    </a>
+    <div class="nav-tabs">
+        <button class="nav-tab active" onclick="switchPage('dashboard')">Dashboard</button>
+        <button class="nav-tab" onclick="switchPage('ingredients')">Bahan Baku</button>
+        <button class="nav-tab" onclick="switchPage('supabase')">Supabase DB</button>
+    </div>
+    <button class="btn btn-gold btn-sm" onclick="openModal()">+ Tambah Bahan</button>
+</div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- PAGE: DASHBOARD -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="page-dashboard" class="page active z1">
+<div class="hero-strip">
+    <div class="hs-inner">
+        <div>
+            <div class="hs-badge"><span style="width:5px;height:5px;border-radius:50%;background:var(--grad);display:inline-block"></span>Manajemen Persediaan Aktif</div>
+            <div class="hs-title">Ringkasan <em>Persediaan</em></div>
+            <div style="font-size:.82rem;color:var(--muted);margin-top:6px;">Economic Order Quantity · Reorder Point · Real-time Status</div>
         </div>
-    </header>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-ghost btn-sm" onclick="switchPage('ingredients')">Lihat Semua Bahan →</button>
+            <button class="btn btn-gold btn-sm" onclick="openModal()">+ Tambah Bahan</button>
+        </div>
+    </div>
+</div>
 
-    <main class="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
+<div class="wrap">
+    <!-- STAT CARDS -->
+    <div class="stat-grid" id="statGrid"></div>
 
-        <section id="interactive-calculator" class="bg-white p-6 rounded-xl shadow-lg">
-            <h2 class="text-2xl font-bold text-slate-800 mb-2">Simulator Biaya Persediaan</h2>
-            <p class="text-slate-600 mb-6 max-w-4xl">Gunakan slider di bawah untuk menyesuaikan variabel input. Perhatikan bagaimana grafik dan hasil perhitungan berubah secara real-time. Tujuannya adalah menemukan titik terendah pada kurva **Total Biaya**, yang merupakan titik EOQ.</p>
-            
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                <div class="lg:col-span-4 space-y-5">
-                    <div>
-                        <label for="demand" class="slider-label"><span>Permintaan Tahunan (D)</span><span id="demandValue" class="slider-value"></span></label>
-                        <input type="range" id="demand" min="100" max="5000" value="1000" step="100" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
-                    </div>
-                    <div>
-                        <label for="orderingCost" class="slider-label"><span>Biaya Pemesanan per Pesanan (S)</span><span id="orderingCostValue" class="slider-value"></span></label>
-                        <input type="range" id="orderingCost" min="5" max="100" value="10" step="1" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
-                    </div>
-                    <div>
-                        <label for="holdingCost" class="slider-label"><span>Biaya Penyimpanan per Unit (H)</span><span id="holdingCostValue" class="slider-value"></span></label>
-                        <input type="range" id="holdingCost" min="0.1" max="5" value="0.5" step="0.1" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
-                    </div>
-                    
-                    <div class="pt-4 space-y-3">
-                        <div class="bg-teal-50 border-l-4 border-teal-500 p-4 rounded-r-lg">
-                            <p class="text-sm font-semibold text-teal-800">Economic Order Quantity (EOQ)</p>
-                            <p id="eoqResult" class="text-2xl font-bold text-teal-900"></p>
-                        </div>
-                         <div class="bg-slate-50 border-l-4 border-slate-400 p-4 rounded-r-lg">
-                            <p class="text-sm font-semibold text-slate-700">Total Biaya Minimum</p>
-                            <p id="totalCostResult" class="text-2xl font-bold text-slate-800"></p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="lg:col-span-8">
-                    <div class="chart-container">
-                        <canvas id="eoqChart"></canvas>
-                    </div>
-                </div>
+    <!-- ALERTS -->
+    <div id="alertZone"></div>
+
+    <!-- REORDER TABLE -->
+    <div class="sec-header">
+        <div><div class="sec-label">Prioritas</div><div class="sec-title">Bahan yang Perlu Dipesan Segera</div></div>
+    </div>
+    <div class="table-wrap tbl-scroll" id="reorderTable"></div>
+
+    <hr class="div">
+
+    <!-- FULL TABLE -->
+    <div class="sec-header">
+        <div><div class="sec-label">Semua Bahan Baku</div><div class="sec-title">Status Persediaan</div></div>
+    </div>
+    <div class="table-wrap tbl-scroll" id="allTable"></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- PAGE: INGREDIENTS -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="page-ingredients" class="page z1">
+<div class="hero-strip">
+    <div class="hs-inner">
+        <div>
+            <div class="hs-badge">EOQ + Reorder Point per Bahan</div>
+            <div class="hs-title">Manajemen <em>Bahan Baku</em></div>
+        </div>
+        <button class="btn btn-gold" onclick="openModal()">+ Tambah Bahan Baru</button>
+    </div>
+</div>
+<div class="wrap">
+    <!-- FILTER ROW -->
+    <div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;align-items:center">
+        <input type="text" id="searchInput" placeholder="Cari bahan baku…" style="max-width:260px;height:38px" oninput="renderIngredientPage()">
+        <select id="catFilter" style="width:auto;height:38px" onchange="renderIngredientPage()">
+            <option value="">Semua Kategori</option>
+            <option value="Tepung & Pati">Tepung & Pati</option>
+            <option value="Gula & Pemanis">Gula & Pemanis</option>
+            <option value="Dairy & Lemak">Dairy & Lemak</option>
+            <option value="Telur">Telur</option>
+            <option value="Flavor & Aroma">Flavor & Aroma</option>
+            <option value="Kemasan">Kemasan</option>
+            <option value="Lainnya">Lainnya</option>
+        </select>
+        <select id="statusFilter" style="width:auto;height:38px" onchange="renderIngredientPage()">
+            <option value="">Semua Status</option>
+            <option value="reorder">Reorder</option>
+            <option value="warn">Warning</option>
+            <option value="ok">OK</option>
+        </select>
+    </div>
+
+    <div class="table-wrap tbl-scroll" id="ingredientTable"></div>
+
+    <!-- DETAIL PANEL -->
+    <div class="detail-panel z1" id="detailPanel"></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- PAGE: SUPABASE -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="page-supabase" class="page z1">
+<div class="hero-strip">
+    <div class="hs-inner">
+        <div>
+            <div class="hs-badge">Database Template</div>
+            <div class="hs-title">Supabase <em>Schema</em></div>
+            <div style="font-size:.82rem;color:var(--muted);margin-top:6px;">PostgreSQL · Row Level Security · Real-time Ready</div>
+        </div>
+        <button class="btn btn-gold" onclick="downloadSQL()">⬇ Download SQL</button>
+    </div>
+</div>
+<div class="wrap">
+    <div class="alert info">
+        <span style="font-size:1.1rem">ℹ</span>
+        <div>Salin SQL di bawah ke <strong>Supabase → SQL Editor → New Query</strong>, lalu klik <strong>Run</strong>. Schema ini akan membuat semua tabel, relasi, index, RLS policy, dan view yang dibutuhkan secara otomatis.</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:28px" id="schemaCards"></div>
+
+    <!-- SQL BLOCKS -->
+    <div id="sqlBlocks"></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- MODAL: ADD / EDIT -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="modal-backdrop" id="modalBackdrop" onclick="handleBackdropClick(event)">
+<div class="modal">
+    <div class="modal-header">
+        <div class="modal-title" id="modalTitle">Tambah Bahan Baku</div>
+        <button class="close-btn" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+        <div class="form-grid">
+            <div class="form-group full">
+                <label class="lbl">Nama Bahan Baku</label>
+                <input type="text" id="f_name" placeholder="e.g. Tepung Terigu Protein Tinggi">
             </div>
-        </section>
-
-        <section id="cost-breakdown" class="mt-12">
-             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div class="bg-white p-6 rounded-xl shadow-md">
-                    <h3 class="font-bold text-xl text-blue-700">Biaya Pemesanan (Ordering Cost)</h3>
-                    <p class="text-slate-600 mt-2">Biaya yang dikeluarkan setiap kali Anda melakukan pesanan (misalnya, biaya administrasi, pengiriman). Semakin besar kuantitas pesanan Anda, semakin jarang Anda memesan, sehingga total biaya ini menurun.</p>
-                    <p class="mt-3 text-lg font-mono bg-blue-50 text-blue-800 p-2 rounded-md">TC = (D/Q) * S</p>
-                </div>
-                 <div class="bg-white p-6 rounded-xl shadow-md">
-                    <h3 class="font-bold text-xl text-orange-700">Biaya Penyimpanan (Holding Cost)</h3>
-                    <p class="text-slate-600 mt-2">Biaya untuk menyimpan persediaan (misalnya, sewa gudang, asuransi, risiko usang). Semakin banyak barang yang Anda pesan, semakin tinggi persediaan rata-rata Anda, sehingga total biaya ini meningkat.</p>
-                    <p class="mt-3 text-lg font-mono bg-orange-50 text-orange-800 p-2 rounded-md">TC = (Q/2) * H</p>
-                </div>
+            <div class="form-group">
+                <label class="lbl">Kategori</label>
+                <select id="f_cat">
+                    <option>Tepung & Pati</option>
+                    <option>Gula & Pemanis</option>
+                    <option>Dairy & Lemak</option>
+                    <option>Telur</option>
+                    <option>Flavor & Aroma</option>
+                    <option>Kemasan</option>
+                    <option>Lainnya</option>
+                </select>
             </div>
-        </section>
-        
-        <section id="formula-assumptions" class="mt-12 bg-slate-800 text-white p-8 rounded-xl shadow-lg">
-            <h2 class="text-2xl font-bold text-center mb-6">Formula & Asumsi Model</h2>
-            <div class="text-center mb-6">
-                <p class="text-2xl font-mono bg-slate-700 inline-block px-4 py-2 rounded-lg">
-                    Q* = &radic;<span style="text-decoration: overline;">&nbsp;2DS / H&nbsp;</span>
-                </p>
+            <div class="form-group">
+                <label class="lbl">Satuan Unit</label>
+                <select id="f_unit">
+                    <option>kg</option>
+                    <option>gram</option>
+                    <option>liter</option>
+                    <option>ml</option>
+                    <option>pcs</option>
+                    <option>pack</option>
+                    <option>box</option>
+                    <option>kaleng</option>
+                </select>
             </div>
-            <div>
-                <h3 class="font-semibold text-lg text-center text-slate-300 mb-3">Asumsi Penting:</h3>
-                <ul class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 max-w-3xl mx-auto text-slate-300">
-                    <li class="flex items-center"><span class="text-teal-400 mr-2">✓</span> Permintaan diketahui & konstan.</li>
-                    <li class="flex items-center"><span class="text-teal-400 mr-2">✓</span> Biaya pemesanan & penyimpanan konstan.</li>
-                    <li class="flex items-center"><span class="text-teal-400 mr-2">✓</span> Waktu tunggu (lead time) konstan.</li>
-                    <li class="flex items-center"><span class="text-teal-400 mr-2">✓</span> Tidak ada diskon kuantitas.</li>
-                </ul>
+            <div class="form-group">
+                <label class="lbl">Permintaan Tahunan (D) <span>unit/tahun</span></label>
+                <input type="number" id="f_demand" placeholder="1200" min="1">
             </div>
-        </section>
+            <div class="form-group">
+                <label class="lbl">Biaya Pemesanan (S) <span>Rp/pesanan</span></label>
+                <input type="number" id="f_s" placeholder="50000" min="0">
+            </div>
+            <div class="form-group">
+                <label class="lbl">Biaya Penyimpanan (H) <span>Rp/unit/tahun</span></label>
+                <input type="number" id="f_h" placeholder="5000" min="0">
+            </div>
+            <div class="form-group">
+                <label class="lbl">Lead Time (L) <span>hari</span></label>
+                <input type="number" id="f_lead" placeholder="3" min="1" max="365">
+                <div class="input-hint">Waktu antara pesan & terima barang</div>
+            </div>
+            <div class="form-group">
+                <label class="lbl">Safety Stock (SS) <span>unit</span></label>
+                <input type="number" id="f_ss" placeholder="0" min="0">
+                <div class="input-hint">Stok pengaman ekstra (opsional)</div>
+            </div>
+            <div class="form-group">
+                <label class="lbl">Stok Saat Ini <span>unit</span></label>
+                <input type="number" id="f_stock" placeholder="0" min="0">
+            </div>
+            <div class="form-group">
+                <label class="lbl">Nama Supplier</label>
+                <input type="text" id="f_supplier" placeholder="PT. Supplier ABC">
+            </div>
+        </div>
 
-    </main>
+        <!-- LIVE PREVIEW -->
+        <div id="livePreview" style="margin-top:18px;padding:14px 18px;background:var(--bg3);border:1px solid var(--border2);border-radius:12px;display:none">
+            <div style="font-size:.65rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--muted2);margin-bottom:10px">Preview Perhitungan</div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;text-align:center" id="previewCards"></div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal()">Batal</button>
+        <button class="btn btn-danger btn-sm" id="deleteBtn" onclick="deleteIngredient()" style="display:none">Hapus</button>
+        <button class="btn btn-gold" onclick="saveIngredient()">Simpan</button>
+    </div>
+</div>
+</div>
 
-    <script>
-        let eoqChart;
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SCRIPTS -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<script>
+// ── DATA ─────────────────────────────────────────────────────
+const STORAGE_KEY = 'djk_ingredients_v3';
+const CATS = {
+    'Tepung & Pati':'tepung','Gula & Pemanis':'gula','Dairy & Lemak':'dairy',
+    'Telur':'telur','Flavor & Aroma':'flavor','Kemasan':'kemasan','Lainnya':'lainnya'
+};
 
-        const demandSlider = document.getElementById('demand');
-        const orderingCostSlider = document.getElementById('orderingCost');
-        const holdingCostSlider = document.getElementById('holdingCost');
+const SAMPLE = [
+    {id:uid(),name:'Tepung Terigu Protein Tinggi',cat:'Tepung & Pati',unit:'kg',demand:1200,s:45000,h:3200,lead:3,ss:20,stock:85,supplier:'PT. Bogasari'},
+    {id:uid(),name:'Tepung Terigu Protein Sedang',cat:'Tepung & Pati',unit:'kg',demand:800,s:45000,h:3200,lead:3,ss:15,stock:40,supplier:'PT. Bogasari'},
+    {id:uid(),name:'Gula Pasir',cat:'Gula & Pemanis',unit:'kg',demand:950,s:38000,h:2800,lead:2,ss:25,stock:30,supplier:'Madurasa Supplier'},
+    {id:uid(),name:'Gula Halus (Icing Sugar)',cat:'Gula & Pemanis',unit:'kg',demand:600,s:42000,h:3500,lead:4,ss:10,stock:22,supplier:'Madurasa Supplier'},
+    {id:uid(),name:'Mentega Tawar',cat:'Dairy & Lemak',unit:'kg',demand:750,s:55000,h:8500,lead:5,ss:30,stock:18,supplier:'PT. Salim Ivomas'},
+    {id:uid(),name:'Cream Cheese',cat:'Dairy & Lemak',unit:'kg',demand:420,s:60000,h:12000,lead:7,ss:12,stock:8,supplier:'Anchor Distributor'},
+    {id:uid(),name:'Heavy Whipping Cream',cat:'Dairy & Lemak',unit:'liter',demand:360,s:58000,h:9500,lead:5,ss:10,stock:14,supplier:'Anchor Distributor'},
+    {id:uid(),name:'Susu Cair UHT',cat:'Dairy & Lemak',unit:'liter',demand:480,s:40000,h:5200,lead:3,ss:20,stock:55,supplier:'PT. Ultrajaya'},
+    {id:uid(),name:'Telur Ayam',cat:'Telur',unit:'kg',demand:1100,s:35000,h:4800,lead:2,ss:30,stock:45,supplier:'CV. Peternak Lokal'},
+    {id:uid(),name:'Dark Chocolate 70%',cat:'Flavor & Aroma',unit:'kg',demand:320,s:65000,h:15000,lead:7,ss:8,stock:12,supplier:'Barry Callebaut ID'},
+    {id:uid(),name:'Vanilla Essence',cat:'Flavor & Aroma',unit:'liter',demand:180,s:48000,h:22000,lead:10,ss:5,stock:6,supplier:'McCormick Distributor'},
+    {id:uid(),name:'Baking Powder',cat:'Flavor & Aroma',unit:'kg',demand:240,s:35000,h:6500,lead:3,ss:8,stock:18,supplier:'Koepoe-Koepoe'},
+    {id:uid(),name:'Box Kemasan Premium',cat:'Kemasan',unit:'pcs',demand:5000,s:70000,h:500,lead:14,ss:200,stock:800,supplier:'CV. Karton Makmur'},
+    {id:uid(),name:'Ribbon & Pita',cat:'Kemasan',unit:'roll',demand:300,s:35000,h:8000,lead:7,ss:10,stock:25,supplier:'Toko Aksesoris'},
+];
 
-        const demandValueEl = document.getElementById('demandValue');
-        const orderingCostValueEl = document.getElementById('orderingCostValue');
-        const holdingCostValueEl = document.getElementById('holdingCostValue');
-        
-        const eoqResultEl = document.getElementById('eoqResult');
-        const totalCostResultEl = document.getElementById('totalCostResult');
+function uid(){return 'id_'+Date.now()+'_'+Math.random().toString(36).slice(2,7)}
 
-        function formatCurrency(value) {
-            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value);
+function load(){
+    try{const d=localStorage.getItem(STORAGE_KEY);return d?JSON.parse(d):SAMPLE}
+    catch(e){return SAMPLE}
+}
+function save(data){localStorage.setItem(STORAGE_KEY,JSON.stringify(data))}
+
+let ingredients=load();
+
+// ── EOQ / ROP MATH ───────────────────────────────────────────
+function calc(item){
+    const D=item.demand,S=item.s,H=item.h,L=item.lead,SS=item.ss||0;
+    const eoq=Math.sqrt((2*D*S)/H);
+    const rop=(D/365)*L+SS;
+    const tc=(eoq/2)*H+(D/eoq)*S;
+    const hcAtEoq=(eoq/2)*H;
+    const ocAtEoq=(D/eoq)*S;
+    const ordersPerYear=D/eoq;
+    const cycleDays=365/ordersPerYear;
+    const avgStock=eoq/2+SS;
+    const dailyDemand=D/365;
+    let status='ok';
+    if(item.stock<=rop) status='reorder';
+    else if(item.stock<=rop*1.4) status='warn';
+    return{eoq,rop,tc,hcAtEoq,ocAtEoq,ordersPerYear,cycleDays,avgStock,dailyDemand,status,SS,D,S,H,L};
+}
+
+// ── FORMAT ───────────────────────────────────────────────────
+function rp(v){return new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',minimumFractionDigits:0}).format(v)}
+function num(v,dec=0){return v.toLocaleString('id-ID',{minimumFractionDigits:dec,maximumFractionDigits:dec})}
+function catClass(cat){return'cat-'+(CATS[cat]||'lainnya')}
+
+// ── PAGE SWITCH ───────────────────────────────────────────────
+function switchPage(id){
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById('page-'+id).classList.add('active');
+    document.querySelectorAll('.nav-tab').forEach((t,i)=>{
+        const pages=['dashboard','ingredients','supabase'];
+        t.classList.toggle('active',pages[i]===id);
+    });
+    if(id==='dashboard')renderDashboard();
+    if(id==='ingredients')renderIngredientPage();
+    if(id==='supabase')renderSupabase();
+}
+
+// ── DASHBOARD ────────────────────────────────────────────────
+function renderDashboard(){
+    const data=ingredients.map(item=>({...item,...calc(item)}));
+    const reorders=data.filter(d=>d.status==='reorder');
+    const warns=data.filter(d=>d.status==='warn');
+    const totalCost=data.reduce((a,d)=>a+d.tc,0);
+
+    // Stats
+    document.getElementById('statGrid').innerHTML=`
+        <div class="stat-card gold">
+            <div class="sc-label">Total Bahan Baku</div>
+            <div class="sc-value grad">${data.length}</div>
+            <div class="sc-sub">item terdaftar</div>
+        </div>
+        <div class="stat-card red">
+            <div class="sc-label">Perlu Reorder Sekarang</div>
+            <div class="sc-value" style="color:var(--red)">${reorders.length}</div>
+            <div class="sc-sub">item di bawah ROP</div>
+        </div>
+        <div class="stat-card amber">
+            <div class="sc-label">Mendekati ROP</div>
+            <div class="sc-value" style="color:var(--amber)">${warns.length}</div>
+            <div class="sc-sub">item perlu perhatian</div>
+        </div>
+        <div class="stat-card green">
+            <div class="sc-label">Stok Aman</div>
+            <div class="sc-value" style="color:var(--green)">${data.length-reorders.length-warns.length}</div>
+            <div class="sc-sub">item stok cukup</div>
+        </div>
+        <div class="stat-card blue">
+            <div class="sc-label">Total Biaya EOQ/Tahun</div>
+            <div class="sc-value" style="font-size:1.3rem;color:var(--blue)">${rp(totalCost)}</div>
+            <div class="sc-sub">seluruh bahan baku</div>
+        </div>
+    `;
+
+    // Alerts
+    let alerts='';
+    if(reorders.length)alerts+=`<div class="alert warn"><span>⚠</span><div><strong>${reorders.length} bahan baku</strong> sudah di bawah Reorder Point: ${reorders.map(r=>`<em>${r.name}</em>`).join(', ')}. Lakukan pemesanan segera.</div></div>`;
+    document.getElementById('alertZone').innerHTML=alerts;
+
+    // Reorder table
+    const reorderHtml=reorders.length?tableHTML(reorders,true):`<div class="empty"><div class="empty-icon">✅</div><div class="empty-title">Semua Stok Aman</div><div class="empty-sub">Tidak ada bahan yang perlu dipesan segera</div></div>`;
+    document.getElementById('reorderTable').innerHTML=reorderHtml;
+    document.getElementById('allTable').innerHTML=tableHTML(data,false);
+}
+
+function tableHTML(data,compact){
+    if(!data.length)return`<div class="empty"><div class="empty-icon">📦</div><div class="empty-title">Belum Ada Data</div><div class="empty-sub">Klik "Tambah Bahan" untuk mulai</div></div>`;
+    return`<table class="tbl">
+    <thead><tr>
+        <th>Bahan Baku</th>
+        <th>Kategori</th>
+        <th>Stok Saat Ini</th>
+        <th>EOQ</th>
+        <th>ROP</th>
+        <th>Safety Stock</th>
+        <th>Total Biaya/Tahun</th>
+        <th>Status</th>
+        ${compact?'':'<th>Aksi</th>'}
+    </tr></thead>
+    <tbody>${data.map(d=>`<tr onclick="selectIngredient('${d.id}')">
+        <td><div class="name">${d.name}</div><div class="unit">${d.unit} · ${d.supplier||'—'}</div></td>
+        <td><span class="cat-badge ${catClass(d.cat)}">${d.cat}</span></td>
+        <td style="font-weight:600">${num(d.stock)} ${d.unit}</td>
+        <td style="color:var(--gold-l);font-weight:600">${num(d.eoq,1)} ${d.unit}</td>
+        <td style="color:var(--blue);font-weight:600">${num(d.rop,1)} ${d.unit}</td>
+        <td style="color:var(--muted2)">${num(d.SS)} ${d.unit}</td>
+        <td>${rp(d.tc)}</td>
+        <td><span class="status ${d.status}"><div class="dot"></div>${d.status==='ok'?'Aman':d.status==='warn'?'Siaga':'Reorder!'}</span></td>
+        ${compact?'':`<td><div style="display:flex;gap:6px">
+            <button class="btn btn-ghost btn-sm btn-icon" onclick="event.stopPropagation();openModal('${d.id}')" title="Edit">✎</button>
+        </div></td>`}
+    </tr>`).join('')}</tbody></table>`;
+}
+
+// ── INGREDIENT PAGE ───────────────────────────────────────────
+let selectedId=null;
+let chartInstance=null;
+
+function renderIngredientPage(){
+    const q=(document.getElementById('searchInput')?.value||'').toLowerCase();
+    const cat=document.getElementById('catFilter')?.value||'';
+    const sf=document.getElementById('statusFilter')?.value||'';
+    const data=ingredients.map(item=>({...item,...calc(item)}))
+        .filter(d=>(!q||d.name.toLowerCase().includes(q))&&(!cat||d.cat===cat)&&(!sf||d.status===sf));
+
+    document.getElementById('ingredientTable').innerHTML=`
+    <table class="tbl"><thead><tr>
+        <th>Bahan Baku</th><th>Kategori</th><th>Permintaan/th (D)</th>
+        <th>EOQ ✦</th><th>ROP ✦</th><th>Stok Saat Ini</th>
+        <th>Biaya Total/th</th><th>Pesanan/th</th><th>Siklus (hari)</th><th>Status</th>
+        <th style="width:80px">Aksi</th>
+    </tr></thead>
+    <tbody>${data.map(d=>`<tr id="row_${d.id}" class="${selectedId===d.id?'selected':''}" onclick="selectIngredient('${d.id}')">
+        <td><div class="name">${d.name}</div><div class="unit">${d.unit} · ${d.supplier||'—'}</div></td>
+        <td><span class="cat-badge ${catClass(d.cat)}">${d.cat}</span></td>
+        <td>${num(d.D)}</td>
+        <td style="color:var(--gold-l);font-weight:700">${num(d.eoq,1)}</td>
+        <td style="color:var(--blue);font-weight:700">${num(d.rop,1)}</td>
+        <td style="font-weight:600">${num(d.stock)}</td>
+        <td>${rp(d.tc)}</td>
+        <td>${num(d.ordersPerYear,1)}x</td>
+        <td>${num(d.cycleDays,0)} hr</td>
+        <td><span class="status ${d.status}"><div class="dot"></div>${d.status==='ok'?'Aman':d.status==='warn'?'Siaga':'Reorder!'}</span></td>
+        <td><div style="display:flex;gap:4px">
+            <button class="btn btn-ghost btn-sm btn-icon" onclick="event.stopPropagation();openModal('${d.id}')" title="Edit">✎</button>
+        </div></td>
+    </tr>`).join('')}</tbody></table>
+    <div style="padding:10px 16px;background:var(--bg3);border-top:1px solid var(--border2);font-size:.7rem;color:var(--muted);display:flex;gap:6px;align-items:center">
+        <span style="color:var(--gold)">✦</span> EOQ = √(2DS/H) &nbsp;|&nbsp; <span style="color:var(--blue)">✦</span> ROP = (D/365)×L + SS
+        &nbsp;|&nbsp; Klik baris untuk detail & grafik
+    </div>`;
+
+    // Re-select if still visible
+    if(selectedId){
+        const stillThere=data.find(d=>d.id===selectedId);
+        if(stillThere)renderDetailPanel(stillThere);
+        else{selectedId=null;document.getElementById('detailPanel').classList.remove('open')}
+    }
+}
+
+function selectIngredient(id){
+    if(selectedId===id){
+        selectedId=null;
+        document.getElementById('detailPanel').classList.remove('open');
+        document.querySelectorAll('.tbl tbody tr').forEach(r=>r.classList.remove('selected'));
+        if(chartInstance){chartInstance.destroy();chartInstance=null}
+        return;
+    }
+    selectedId=id;
+    const item=ingredients.find(i=>i.id===id);
+    if(!item)return;
+    const c=calc(item);
+    document.querySelectorAll('.tbl tbody tr').forEach(r=>r.classList.remove('selected'));
+    const row=document.getElementById('row_'+id);
+    if(row){row.classList.add('selected');row.scrollIntoView({behavior:'smooth',block:'nearest'})}
+    renderDetailPanel({...item,...c});
+
+    // Ensure panel is visible on ingredient page
+    if(document.getElementById('page-ingredients').classList.contains('active')){
+        switchPage('ingredients');
+    }else{
+        renderDashboard();
+    }
+}
+
+function renderDetailPanel(d){
+    const panel=document.getElementById('detailPanel');
+    panel.classList.add('open');
+
+    // Stock bar calculation
+    const barMax=Math.max(d.stock,d.rop*2,d.eoq*1.5);
+    const stockPct=Math.min(100,(d.stock/barMax)*100);
+    const ropPct=Math.min(100,(d.rop/barMax)*100);
+    const eoqPct=Math.min(100,(d.eoq/barMax)*100);
+
+    let barColor='var(--green)';
+    if(d.status==='warn')barColor='var(--amber)';
+    if(d.status==='reorder')barColor='var(--red)';
+
+    panel.innerHTML=`
+    <div class="dp-header anim">
+        <div>
+            <div style="font-size:.65rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);margin-bottom:6px">Detail Analisis</div>
+            <div style="font-family:'Cormorant Garamond';font-size:1.8rem;font-weight:600;color:var(--cream)">${d.name}</div>
+            <div style="display:flex;gap:10px;align-items:center;margin-top:6px">
+                <span class="cat-badge ${catClass(d.cat)}">${d.cat}</span>
+                <span style="font-size:.75rem;color:var(--muted2)">${d.unit} · ${d.supplier||'—'}</span>
+                <span class="status ${d.status}"><div class="dot"></div>${d.status==='ok'?'Stok Aman':d.status==='warn'?'Mendekati ROP':'Reorder Segera!'}</span>
+            </div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="openModal('${d.id}')">✎ Edit</button>
+    </div>
+
+    <div class="dp-grid anim">
+        <div class="dp-metric"><div class="m-label">EOQ Optimal</div><div class="m-value gold">${num(d.eoq,1)} ${d.unit}</div><div class="m-sub">Kuantitas pesanan ideal</div></div>
+        <div class="dp-metric"><div class="m-label">Reorder Point (ROP)</div><div class="m-value" style="color:var(--blue)">${num(d.rop,1)} ${d.unit}</div><div class="m-sub">Batas stok untuk memesan</div></div>
+        <div class="dp-metric"><div class="m-label">Stok Saat Ini</div><div class="m-value" style="color:${barColor}">${num(d.stock)} ${d.unit}</div><div class="m-sub">vs ROP: ${num(d.rop,1)}</div></div>
+        <div class="dp-metric"><div class="m-label">Safety Stock</div><div class="m-value">${num(d.SS)} ${d.unit}</div><div class="m-sub">Stok pengaman</div></div>
+        <div class="dp-metric"><div class="m-label">Total Biaya/Tahun</div><div class="m-value" style="font-size:1.2rem">${rp(d.tc)}</div><div class="m-sub">Biaya optimal minimum</div></div>
+        <div class="dp-metric"><div class="m-label">Frekuensi Pesan/Tahun</div><div class="m-value">${num(d.ordersPerYear,1)}×</div><div class="m-sub">Siklus ${num(d.cycleDays,0)} hari</div></div>
+    </div>
+
+    <!-- ROP VISUAL BAR -->
+    <div class="rop-visual anim" style="margin-bottom:14px">
+        <div style="font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);margin-bottom:8px">Visualisasi Level Stok</div>
+        <div class="rop-bar-wrap">
+            <div class="rop-bar" style="width:${stockPct}%;background:${barColor}"></div>
+            <div style="position:absolute;top:0;bottom:0;left:${ropPct}%;width:2px;background:var(--blue);border-radius:1px"></div>
+            <div style="position:absolute;top:-16px;left:${ropPct}%;transform:translateX(-50%);font-size:.6rem;color:var(--blue);white-space:nowrap">ROP</div>
+        </div>
+        <div class="rop-markers">
+            <span>0</span>
+            <span style="color:var(--blue)">ROP: ${num(d.rop,0)} ${d.unit}</span>
+            <span>${num(barMax,0)} ${d.unit}</span>
+        </div>
+        <div style="margin-top:10px;font-size:.78rem;color:var(--muted2)">
+            Stok saat ini <strong style="color:${barColor}">${num(d.stock)} ${d.unit}</strong>
+            ${d.status==='reorder'?` — <strong style="color:var(--red)">⚠ Di bawah ROP! Pesan ${num(d.eoq,0)} ${d.unit} segera.</strong>`:''}
+            ${d.status==='warn'?` — <strong style="color:var(--amber)">⚡ Mendekati ROP, siapkan pesanan.</strong>`:''}
+            ${d.status==='ok'?` — <strong style="color:var(--green)">✓ Stok aman.</strong>`:''}
+        </div>
+    </div>
+
+    <!-- CHART -->
+    <div class="chart-area anim">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <div style="font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2)">Kurva Biaya EOQ</div>
+            <div style="display:flex;gap:14px;font-size:.68rem;color:var(--muted2)">
+                <span><span style="color:var(--gold-l)">■</span> Total</span>
+                <span><span style="color:var(--orange)">■</span> Simpan</span>
+                <span><span style="color:var(--blue)">■</span> Pesan</span>
+                <span><span style="color:var(--gold)">|</span> EOQ</span>
+            </div>
+        </div>
+        <canvas id="detailChart"></canvas>
+    </div>
+
+    <!-- FORMULA ROW -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" class="anim">
+        <div class="formula-box">
+            <div class="formula-title">Formula EOQ</div>
+            <div class="formula-eq">Q* = √( 2 × ${num(d.D)} × ${rp(d.S)} / ${rp(d.H)} )</div>
+            <div class="formula-eq" style="font-size:1.5rem;color:var(--gold-l)">= ${num(d.eoq,1)} ${d.unit}</div>
+        </div>
+        <div class="formula-box">
+            <div class="formula-title">Formula ROP</div>
+            <div class="formula-eq">ROP = (${num(d.D)}/365) × ${d.L} + ${num(d.SS)}</div>
+            <div class="formula-eq" style="font-size:1.5rem;color:var(--blue)">= ${num(d.rop,1)} ${d.unit}</div>
+            <div class="formula-vars" style="margin-top:6px">
+                <span>d̄ = <strong>${num(d.dailyDemand,2)} ${d.unit}/hari</strong></span>
+                <span>L = <strong>${d.L} hari</strong></span>
+                <span>SS = <strong>${num(d.SS)} ${d.unit}</strong></span>
+            </div>
+        </div>
+    </div>
+    `;
+
+    // Draw chart
+    if(chartInstance){chartInstance.destroy();chartInstance=null}
+    setTimeout(()=>drawDetailChart(d),50);
+}
+
+function drawDetailChart(d){
+    const ctx=document.getElementById('detailChart');
+    if(!ctx)return;
+    const maxQ=Math.max(d.eoq*3,50);
+    const steps=50;
+    const step=maxQ/steps;
+    const qs=[],hc=[],oc=[],tc=[];
+    for(let i=1;i<=steps;i++){
+        const q=i*step;
+        qs.push(q.toFixed(0));
+        hc.push((q/2)*d.H);
+        oc.push((d.D/q)*d.S);
+        tc.push((q/2)*d.H+(d.D/q)*d.S);
+    }
+    chartInstance=new Chart(ctx,{
+        type:'line',
+        data:{labels:qs,datasets:[
+            {label:'Total Biaya',data:tc,borderColor:'#e2c97a',borderWidth:2,tension:.3,pointRadius:0},
+            {label:'Biaya Simpan',data:hc,borderColor:'#fb923c',borderDash:[4,4],borderWidth:1.5,tension:.3,pointRadius:0},
+            {label:'Biaya Pesan',data:oc,borderColor:'#60a5fa',borderDash:[4,4],borderWidth:1.5,tension:.3,pointRadius:0},
+        ]},
+        options:{
+            responsive:true,maintainAspectRatio:false,
+            scales:{
+                x:{title:{display:true,text:'Kuantitas (Q)',color:'#5e5c6e',font:{size:10}},ticks:{color:'#5e5c6e',font:{size:9},maxTicksLimit:8},grid:{color:'rgba(255,255,255,.04)'}},
+                y:{ticks:{color:'#5e5c6e',font:{size:9},callback:v=>{if(v>=1e6)return'Rp'+(v/1e6).toFixed(1)+'jt';if(v>=1e3)return'Rp'+(v/1e3).toFixed(0)+'rb';return'Rp'+v}},grid:{color:'rgba(255,255,255,.04)'}}
+            },
+            plugins:{
+                legend:{display:false},
+                tooltip:{backgroundColor:'#16161f',borderColor:'rgba(201,168,76,.3)',borderWidth:1,titleColor:'#c9a84c',bodyColor:'#f0e9d8',callbacks:{label:c=>` ${c.dataset.label}: ${rp(c.parsed.y)}`}},
+                annotation:{annotations:{eoqLine:{type:'line',mode:'vertical',scaleID:'x',value:d.eoq.toFixed(0),borderColor:'#c9a84c',borderWidth:2,borderDash:[5,5],label:{enabled:true,content:'EOQ',position:'start',backgroundColor:'#c9a84c',color:'#08080c',font:{weight:'bold',size:10},padding:{x:6,y:3},borderRadius:4}}}}
+            },
+            interaction:{intersect:false,mode:'index'}
         }
+    });
+}
 
-        function calculateAndDraw() {
-            const D = parseFloat(demandSlider.value);
-            const S = parseFloat(orderingCostSlider.value);
-            const H = parseFloat(holdingCostSlider.value);
-
-            demandValueEl.textContent = `${D.toLocaleString('id-ID')} unit`;
-            orderingCostValueEl.textContent = formatCurrency(S);
-            holdingCostValueEl.textContent = formatCurrency(H);
-
-            const eoq = Math.sqrt((2 * D * S) / H);
-            
-            const maxQuantity = eoq * 2 > 400 ? Math.ceil((eoq * 2) / 100) * 100 : 400;
-            const step = maxQuantity / 20;
-
-            const quantities = [];
-            const holdingCosts = [];
-            const orderingCosts = [];
-            const totalCosts = [];
-
-            for (let q = step; q <= maxQuantity; q += step) {
-                if (q === 0) continue;
-                quantities.push(q);
-                const holdingCost = (q / 2) * H;
-                const orderingCost = (D / q) * S;
-                holdingCosts.push(holdingCost);
-                orderingCosts.push(orderingCost);
-                totalCosts.push(holdingCost + orderingCost);
-            }
-            
-            const totalCostAtEoq = (eoq / 2) * H + (D / eoq) * S;
-
-            eoqResultEl.textContent = `${Math.round(eoq)} unit`;
-            totalCostResultEl.textContent = formatCurrency(totalCostAtEoq);
-
-            updateChart(quantities, holdingCosts, orderingCosts, totalCosts, eoq);
+// ── MODAL ─────────────────────────────────────────────────────
+let editId=null;
+function openModal(id=null){
+    editId=id;
+    const modal=document.getElementById('modalBackdrop');
+    modal.classList.add('open');
+    document.getElementById('deleteBtn').style.display=id?'block':'none';
+    document.getElementById('modalTitle').textContent=id?'Edit Bahan Baku':'Tambah Bahan Baku';
+    if(id){
+        const item=ingredients.find(i=>i.id===id);
+        if(item){
+            document.getElementById('f_name').value=item.name;
+            document.getElementById('f_cat').value=item.cat;
+            document.getElementById('f_unit').value=item.unit;
+            document.getElementById('f_demand').value=item.demand;
+            document.getElementById('f_s').value=item.s;
+            document.getElementById('f_h').value=item.h;
+            document.getElementById('f_lead').value=item.lead;
+            document.getElementById('f_ss').value=item.ss;
+            document.getElementById('f_stock').value=item.stock;
+            document.getElementById('f_supplier').value=item.supplier||'';
         }
+    } else {
+        ['f_name','f_demand','f_s','f_h','f_lead','f_ss','f_stock','f_supplier'].forEach(f=>document.getElementById(f).value='');
+        document.getElementById('f_cat').value='Tepung & Pati';
+        document.getElementById('f_unit').value='kg';
+    }
+    updateLivePreview();
+    ['f_demand','f_s','f_h','f_lead','f_ss'].forEach(f=>document.getElementById(f).addEventListener('input',updateLivePreview));
+}
 
-        function updateChart(quantities, holdingCosts, orderingCosts, totalCosts, eoq) {
-            const chartData = {
-                labels: quantities.map(q => q.toFixed(0)),
-                datasets: [
-                    {
-                        label: 'Total Biaya',
-                        data: totalCosts,
-                        borderColor: '#1e293b', // slate-800
-                        backgroundColor: 'transparent',
-                        borderWidth: 3,
-                        tension: 0.1,
-                        pointRadius: 0,
-                        order: 0
-                    },
-                    {
-                        label: 'Biaya Penyimpanan',
-                        data: holdingCosts,
-                        borderColor: '#ea580c', // orange-600
-                        backgroundColor: 'transparent',
-                        borderDash: [5, 5],
-                        borderWidth: 2,
-                        tension: 0.1,
-                        pointRadius: 0,
-                        order: 1
-                    },
-                    {
-                        label: 'Biaya Pemesanan',
-                        data: orderingCosts,
-                        borderColor: '#2563eb', // blue-600
-                        backgroundColor: 'transparent',
-                        borderDash: [5, 5],
-                        borderWidth: 2,
-                        tension: 0.1,
-                        pointRadius: 0,
-                        order: 1
-                    }
-                ]
-            };
-            
-            const eoqAnnotation = {
-                type: 'line',
-                mode: 'vertical',
-                scaleID: 'x',
-                value: eoq,
-                borderColor: '#0f766e', // teal-700
-                borderWidth: 2,
-                borderDash: [6, 6],
-                label: {
-                    enabled: true,
-                    content: `EOQ: ${eoq.toFixed(0)}`,
-                    position: 'start',
-                    backgroundColor: '#0f766e'
-                }
-            };
+function updateLivePreview(){
+    const D=parseFloat(document.getElementById('f_demand').value)||0;
+    const S=parseFloat(document.getElementById('f_s').value)||0;
+    const H=parseFloat(document.getElementById('f_h').value)||0;
+    const L=parseFloat(document.getElementById('f_lead').value)||0;
+    const SS=parseFloat(document.getElementById('f_ss').value)||0;
+    const preview=document.getElementById('livePreview');
+    if(!D||!S||!H||!L){preview.style.display='none';return}
+    preview.style.display='block';
+    const eoq=Math.sqrt((2*D*S)/H);
+    const rop=(D/365)*L+SS;
+    const tc=(eoq/2)*H+(D/eoq)*S;
+    const orders=D/eoq;
+    document.getElementById('previewCards').innerHTML=`
+        <div style="background:var(--bg4);border-radius:8px;padding:10px">
+            <div style="font-size:.6rem;color:var(--muted2);margin-bottom:4px;letter-spacing:.1em">EOQ</div>
+            <div style="font-family:'Cormorant Garamond';font-size:1.3rem;color:var(--gold-l);font-weight:700">${num(eoq,1)}</div>
+        </div>
+        <div style="background:var(--bg4);border-radius:8px;padding:10px">
+            <div style="font-size:.6rem;color:var(--muted2);margin-bottom:4px;letter-spacing:.1em">ROP</div>
+            <div style="font-family:'Cormorant Garamond';font-size:1.3rem;color:var(--blue);font-weight:700">${num(rop,1)}</div>
+        </div>
+        <div style="background:var(--bg4);border-radius:8px;padding:10px">
+            <div style="font-size:.6rem;color:var(--muted2);margin-bottom:4px;letter-spacing:.1em">Total/Tahun</div>
+            <div style="font-family:'Cormorant Garamond';font-size:1rem;color:var(--cream);font-weight:700">${rp(tc)}</div>
+        </div>
+        <div style="background:var(--bg4);border-radius:8px;padding:10px">
+            <div style="font-size:.6rem;color:var(--muted2);margin-bottom:4px;letter-spacing:.1em">Pesan/Tahun</div>
+            <div style="font-family:'Cormorant Garamond';font-size:1.3rem;color:var(--cream);font-weight:700">${num(orders,1)}×</div>
+        </div>
+    `;
+}
 
-            if (eoqChart) {
-                eoqChart.data = chartData;
-                eoqChart.options.plugins.annotation.annotations.line1 = eoqAnnotation;
-                eoqChart.update();
-            } else {
-                const config = {
-                    type: 'line',
-                    data: chartData,
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            x: {
-                                title: { display: true, text: 'Kuantitas Pesanan (Q)' }
-                            },
-                            y: {
-                                title: { display: true, text: 'Biaya Tahunan (Rp)' },
-                                ticks: {
-                                    callback: function(value, index, values) {
-                                        return formatCurrency(value);
-                                    }
-                                }
-                            }
-                        },
-                        plugins: {
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        let label = context.dataset.label || '';
-                                        if (label) {
-                                            label += ': ';
-                                        }
-                                        label += formatCurrency(context.parsed.y);
-                                        return label;
-                                    }
-                                }
-                            },
-                            annotation: {
-                                annotations: {
-                                    line1: eoqAnnotation
-                                }
-                            }
-                        },
-                        interaction: {
-                            intersect: false,
-                            mode: 'index',
-                        },
-                    }
-                };
-                 eoqChart = new Chart(document.getElementById('eoqChart'), config);
-            }
-        }
-        
-        document.addEventListener('DOMContentLoaded', () => {
-            // Membutuhkan Chart.js Annotation Plugin untuk garis EOQ
-            const script = document.createElement('script');
-            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/1.4.0/chartjs-plugin-annotation.min.js';
-            script.onload = () => {
-                demandSlider.addEventListener('input', calculateAndDraw);
-                orderingCostSlider.addEventListener('input', calculateAndDraw);
-                holdingCostSlider.addEventListener('input', calculateAndDraw);
-                calculateAndDraw();
-            };
-            document.head.appendChild(script);
-        });
-    </script>
+function closeModal(){document.getElementById('modalBackdrop').classList.remove('open')}
+function handleBackdropClick(e){if(e.target.id==='modalBackdrop')closeModal()}
 
+function saveIngredient(){
+    const item={
+        id:editId||uid(),
+        name:document.getElementById('f_name').value.trim(),
+        cat:document.getElementById('f_cat').value,
+        unit:document.getElementById('f_unit').value,
+        demand:parseFloat(document.getElementById('f_demand').value)||0,
+        s:parseFloat(document.getElementById('f_s').value)||0,
+        h:parseFloat(document.getElementById('f_h').value)||0,
+        lead:parseFloat(document.getElementById('f_lead').value)||1,
+        ss:parseFloat(document.getElementById('f_ss').value)||0,
+        stock:parseFloat(document.getElementById('f_stock').value)||0,
+        supplier:document.getElementById('f_supplier').value.trim(),
+    };
+    if(!item.name||!item.demand||!item.s||!item.h){alert('Mohon lengkapi semua field wajib.');return}
+    if(editId){
+        const idx=ingredients.findIndex(i=>i.id===editId);
+        if(idx>=0)ingredients[idx]=item;
+    }else{ingredients.push(item)}
+    save(ingredients);
+    closeModal();
+    if(document.getElementById('page-ingredients').classList.contains('active'))renderIngredientPage();
+    else renderDashboard();
+}
+
+function deleteIngredient(){
+    if(!editId)return;
+    if(!confirm('Hapus bahan baku ini?'))return;
+    ingredients=ingredients.filter(i=>i.id!==editId);
+    save(ingredients);
+    closeModal();
+    if(selectedId===editId){selectedId=null;document.getElementById('detailPanel').classList.remove('open')}
+    if(document.getElementById('page-ingredients').classList.contains('active'))renderIngredientPage();
+    else renderDashboard();
+}
+
+// ── SUPABASE PAGE ─────────────────────────────────────────────
+function renderSupabase(){
+    const tables=[
+        {name:'suppliers',cols:6,desc:'Data supplier/vendor bahan baku'},
+        {name:'ingredients',cols:12,desc:'Master data bahan baku + parameter EOQ'},
+        {name:'inventory_transactions',cols:9,desc:'Riwayat keluar-masuk stok'},
+        {name:'purchase_orders',cols:8,desc:'Header Purchase Order'},
+        {name:'po_items',cols:6,desc:'Detail item per Purchase Order'},
+        {name:'eoq_log',cols:8,desc:'Log historis perhitungan EOQ'},
+    ];
+    document.getElementById('schemaCards').innerHTML=tables.map(t=>`
+        <div class="stat-card" style="padding:16px">
+            <div style="font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:6px">${t.name}</div>
+            <div style="font-size:.82rem;color:var(--muted2)">${t.desc}</div>
+            <div style="font-size:.7rem;color:var(--muted);margin-top:6px">${t.cols} kolom</div>
+        </div>`).join('');
+
+    document.getElementById('sqlBlocks').innerHTML=sqlBlocks().map(b=>`
+        <div style="margin-bottom:20px">
+            <div class="sql-block">
+                <div class="sql-header">
+                    <span>${b.title}</span>
+                    <button class="btn btn-ghost btn-sm copy-sql-btn" onclick="copySQL(\`${b.sql.replace(/`/g,'\\`')}\`)">Copy</button>
+                </div>
+                <div class="sql-body"><pre>${highlight(b.sql)}</pre></div>
+            </div>
+        </div>`).join('');
+}
+
+function copySQL(text){navigator.clipboard.writeText(text).then(()=>alert('SQL disalin!')).catch(()=>alert('Gagal menyalin. Silakan salin manual.'))}
+
+function downloadSQL(){
+    const allSQL=sqlBlocks().map(b=>b.sql).join('\n\n');
+    const blob=new Blob([allSQL],{type:'text/plain'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='doublejokitchen_supabase.sql';a.click();
+}
+
+function highlight(sql){
+    return sql
+        .replace(/\b(CREATE|TABLE|IF|NOT|EXISTS|PRIMARY|KEY|DEFAULT|REFERENCES|ON|DELETE|CASCADE|INSERT|INTO|VALUES|SELECT|FROM|WHERE|AND|OR|INDEX|CREATE INDEX|UNIQUE|WITH|CHECK|POLICY|ENABLE|ROW|LEVEL|SECURITY|ALTER|FOR|USING|TO|VIEW|AS|FUNCTION|RETURNS|LANGUAGE|BEGIN|END|RETURN|TRIGGER|AFTER|EACH|ROW|EXECUTE|PROCEDURE|GRANT|ALL|PRIVILEGES|PUBLIC|IN|IS|NULL|NOT NULL)\b/g,'<span class="kw">$1</span>')
+        .replace(/\b(gen_random_uuid|now|CURRENT_TIMESTAMP|uuid_generate_v4|SQRT|ROUND|COALESCE)\b/g,'<span class="fn">$1</span>')
+        .replace(/\b(UUID|TEXT|VARCHAR|INTEGER|DECIMAL|TIMESTAMPTZ|BOOLEAN|SERIAL|BIGINT|FLOAT|NUMERIC)\b/g,'<span class="ty">$1</span>')
+        .replace(/'([^']*)'/g,"<span class=\"str\">'$1'</span>")
+        .replace(/(--[^\n]*)/g,'<span class="cm">$1</span>');
+}
+
+function sqlBlocks(){return[
+{title:'1. Extensions & Setup',sql:`-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`},
+{title:'2. Table: suppliers',sql:`CREATE TABLE IF NOT EXISTS suppliers (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name          VARCHAR(255) NOT NULL,
+  contact_person VARCHAR(255),
+  phone         VARCHAR(50),
+  email         VARCHAR(255),
+  address       TEXT,
+  notes         TEXT,
+  is_active     BOOLEAN DEFAULT TRUE,
+  created_at    TIMESTAMPTZ DEFAULT now(),
+  updated_at    TIMESTAMPTZ DEFAULT now()
+);
+
+-- Index
+CREATE INDEX idx_suppliers_name ON suppliers(name);`},
+{title:'3. Table: ingredients (Master Bahan Baku + Parameter EOQ)',sql:`CREATE TABLE IF NOT EXISTS ingredients (
+  id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name                  VARCHAR(255) NOT NULL,
+  category              VARCHAR(100) NOT NULL,
+  unit                  VARCHAR(50)  NOT NULL,
+
+  -- Parameter EOQ
+  annual_demand         DECIMAL(12,2) NOT NULL CHECK (annual_demand > 0),   -- D: unit/tahun
+  ordering_cost         DECIMAL(12,2) NOT NULL CHECK (ordering_cost > 0),   -- S: Rp/pesanan
+  holding_cost_per_unit DECIMAL(12,2) NOT NULL CHECK (holding_cost_per_unit > 0), -- H: Rp/unit/tahun
+  lead_time_days        INTEGER      NOT NULL DEFAULT 1 CHECK (lead_time_days > 0), -- L: hari
+
+  -- Computed (stored for performance)
+  eoq                   DECIMAL(12,2) GENERATED ALWAYS AS
+                        (ROUND(SQRT(2 * annual_demand * ordering_cost / holding_cost_per_unit), 2))
+                        STORED,
+
+  -- Stok & Safety
+  safety_stock          DECIMAL(12,2) DEFAULT 0,          -- SS
+  current_stock         DECIMAL(12,2) DEFAULT 0,
+
+  -- Reorder Point: ROP = (D/365)*L + SS (computed in app or via view)
+  supplier_id           UUID REFERENCES suppliers(id) ON DELETE SET NULL,
+  supplier_name         VARCHAR(255),
+
+  is_active             BOOLEAN DEFAULT TRUE,
+  created_at            TIMESTAMPTZ DEFAULT now(),
+  updated_at            TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX idx_ingredients_category ON ingredients(category);
+CREATE INDEX idx_ingredients_supplier ON ingredients(supplier_id);`},
+{title:'4. Table: inventory_transactions (Mutasi Stok)',sql:`CREATE TABLE IF NOT EXISTS inventory_transactions (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ingredient_id    UUID NOT NULL REFERENCES ingredients(id) ON DELETE CASCADE,
+  transaction_type VARCHAR(20) NOT NULL CHECK (transaction_type IN ('in','out','adjustment','waste')),
+  quantity         DECIMAL(12,2) NOT NULL,
+  stock_before     DECIMAL(12,2),
+  stock_after      DECIMAL(12,2),
+  reference_id     UUID,        -- FK to po_items if 'in'
+  notes            TEXT,
+  transaction_date TIMESTAMPTZ DEFAULT now(),
+  created_by       VARCHAR(255),
+  created_at       TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX idx_inv_tx_ingredient ON inventory_transactions(ingredient_id);
+CREATE INDEX idx_inv_tx_date       ON inventory_transactions(transaction_date);
+CREATE INDEX idx_inv_tx_type       ON inventory_transactions(transaction_type);`},
+{title:'5. Tables: purchase_orders + po_items',sql:`CREATE TABLE IF NOT EXISTS purchase_orders (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  po_number         VARCHAR(100) UNIQUE NOT NULL,
+  supplier_id       UUID REFERENCES suppliers(id) ON DELETE SET NULL,
+  status            VARCHAR(20) DEFAULT 'draft'
+                    CHECK (status IN ('draft','ordered','partial','received','cancelled')),
+  order_date        TIMESTAMPTZ,
+  expected_delivery TIMESTAMPTZ,
+  actual_delivery   TIMESTAMPTZ,
+  total_amount      DECIMAL(14,2),
+  notes             TEXT,
+  created_at        TIMESTAMPTZ DEFAULT now(),
+  updated_at        TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS po_items (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  po_id             UUID NOT NULL REFERENCES purchase_orders(id) ON DELETE CASCADE,
+  ingredient_id     UUID NOT NULL REFERENCES ingredients(id) ON DELETE RESTRICT,
+  quantity_ordered  DECIMAL(12,2) NOT NULL,
+  quantity_received DECIMAL(12,2) DEFAULT 0,
+  unit_price        DECIMAL(12,2),
+  subtotal          DECIMAL(14,2) GENERATED ALWAYS AS (quantity_ordered * COALESCE(unit_price,0)) STORED,
+  created_at        TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX idx_po_status     ON purchase_orders(status);
+CREATE INDEX idx_po_items_po   ON po_items(po_id);
+CREATE INDEX idx_po_items_ingr ON po_items(ingredient_id);`},
+{title:'6. Table: eoq_log (Audit Trail Perhitungan)',sql:`CREATE TABLE IF NOT EXISTS eoq_log (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ingredient_id    UUID NOT NULL REFERENCES ingredients(id) ON DELETE CASCADE,
+  annual_demand    DECIMAL(12,2),
+  ordering_cost    DECIMAL(12,2),
+  holding_cost     DECIMAL(12,2),
+  lead_time_days   INTEGER,
+  safety_stock     DECIMAL(12,2),
+  eoq              DECIMAL(12,2),
+  rop              DECIMAL(12,2),
+  total_annual_cost DECIMAL(14,2),
+  calculated_by    VARCHAR(255),
+  calculated_at    TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX idx_eoq_log_ingredient ON eoq_log(ingredient_id);`},
+{title:'7. View: v_inventory_status (Dashboard View)',sql:`-- View untuk dashboard status persediaan + kalkulasi EOQ & ROP
+CREATE OR REPLACE VIEW v_inventory_status AS
+SELECT
+  i.id,
+  i.name,
+  i.category,
+  i.unit,
+  i.annual_demand          AS demand_d,
+  i.ordering_cost          AS order_cost_s,
+  i.holding_cost_per_unit  AS hold_cost_h,
+  i.lead_time_days         AS lead_l,
+  i.safety_stock           AS ss,
+  i.current_stock,
+  i.eoq,
+  -- ROP = (D/365)*L + SS
+  ROUND((i.annual_demand / 365.0) * i.lead_time_days + i.safety_stock, 2)
+                           AS rop,
+  -- Total biaya minimum
+  ROUND((i.eoq / 2) * i.holding_cost_per_unit
+      + (i.annual_demand / i.eoq) * i.ordering_cost, 2)
+                           AS total_annual_cost,
+  ROUND(i.annual_demand / i.eoq, 1)
+                           AS orders_per_year,
+  ROUND(365.0 / (i.annual_demand / i.eoq), 0)
+                           AS cycle_days,
+  -- Status
+  CASE
+    WHEN i.current_stock <=
+         ROUND((i.annual_demand / 365.0) * i.lead_time_days + i.safety_stock, 2)
+      THEN 'reorder'
+    WHEN i.current_stock <=
+         ROUND((i.annual_demand / 365.0) * i.lead_time_days + i.safety_stock, 2) * 1.4
+      THEN 'warning'
+    ELSE 'ok'
+  END                      AS stock_status,
+  s.name                   AS supplier_name,
+  i.updated_at
+FROM ingredients i
+LEFT JOIN suppliers s ON s.id = i.supplier_id
+WHERE i.is_active = TRUE;`},
+{title:'8. Row Level Security (RLS)',sql:`-- Enable RLS on sensitive tables
+ALTER TABLE ingredients           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE inventory_transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE purchase_orders       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE po_items              ENABLE ROW LEVEL SECURITY;
+
+-- Policy: authenticated users can read all
+CREATE POLICY "Authenticated read ingredients"
+  ON ingredients FOR SELECT
+  TO authenticated USING (TRUE);
+
+CREATE POLICY "Authenticated read transactions"
+  ON inventory_transactions FOR SELECT
+  TO authenticated USING (TRUE);
+
+-- Policy: only service_role can insert/update/delete
+CREATE POLICY "Service write ingredients"
+  ON ingredients FOR ALL
+  TO service_role USING (TRUE) WITH CHECK (TRUE);
+
+CREATE POLICY "Service write transactions"
+  ON inventory_transactions FOR ALL
+  TO service_role USING (TRUE) WITH CHECK (TRUE);
+
+CREATE POLICY "Service write purchase_orders"
+  ON purchase_orders FOR ALL
+  TO service_role USING (TRUE) WITH CHECK (TRUE);`},
+{title:'9. Seed Data — Sample Bahan Baku Double Jo Kitchen',sql:`-- Sample data sesuai Double Jo Kitchen
+INSERT INTO suppliers (name, phone, is_active) VALUES
+  ('PT. Bogasari Flour Mills', '021-5308420', TRUE),
+  ('Madurasa Supplier',        '021-7891234', TRUE),
+  ('PT. Salim Ivomas Pratama', '021-5298888', TRUE),
+  ('Anchor Food Professionals','021-5551234', TRUE),
+  ('Barry Callebaut Indonesia','021-7956789', TRUE),
+  ('CV. Karton Makmur',        '021-4441111', TRUE);
+
+INSERT INTO ingredients
+  (name, category, unit, annual_demand, ordering_cost, holding_cost_per_unit, lead_time_days, safety_stock, current_stock, supplier_name)
+VALUES
+  ('Tepung Terigu Protein Tinggi', 'Tepung & Pati',  'kg',    1200, 45000,  3200, 3,  20, 85,  'PT. Bogasari Flour Mills'),
+  ('Gula Pasir',                   'Gula & Pemanis', 'kg',     950, 38000,  2800, 2,  25, 30,  'Madurasa Supplier'),
+  ('Mentega Tawar',                'Dairy & Lemak',  'kg',     750, 55000,  8500, 5,  30, 18,  'PT. Salim Ivomas Pratama'),
+  ('Cream Cheese',                 'Dairy & Lemak',  'kg',     420, 60000, 12000, 7,  12,  8,  'Anchor Food Professionals'),
+  ('Heavy Whipping Cream',         'Dairy & Lemak',  'liter',  360, 58000,  9500, 5,  10, 14,  'Anchor Food Professionals'),
+  ('Telur Ayam',                   'Telur',          'kg',    1100, 35000,  4800, 2,  30, 45,  'CV. Peternak Lokal'),
+  ('Dark Chocolate 70%',           'Flavor & Aroma', 'kg',     320, 65000, 15000, 7,   8, 12,  'Barry Callebaut Indonesia'),
+  ('Box Kemasan Premium',          'Kemasan',        'pcs',   5000, 70000,   500, 14, 200,800,  'CV. Karton Makmur');`}
+];}
+
+// ── INIT ──────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+    // Load annotation plugin
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/1.4.0/chartjs-plugin-annotation.min.js';
+    s.onload=()=>renderDashboard();
+    document.head.appendChild(s);
+});
+</script>
 </body>
 </html>
-
