@@ -317,7 +317,7 @@
     <div class="nav-tabs">
       <button class="nav-tab active" onclick="switchPage('dashboard')">Dashboard</button>
       <button class="nav-tab" onclick="switchPage('ingredients')">Bahan Baku</button>
-
+      <button class="nav-tab" onclick="switchPage('supabase')">Supabase DB</button>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
       <span id="dbStatus" style="font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:4px 10px;border-radius:6px;background:rgba(251,191,36,.1);color:var(--amber);">● Connecting…</span>
@@ -392,6 +392,27 @@
   </div>
 </div>
 
+<!-- PAGE: SUPABASE -->
+<div id="page-supabase" class="page">
+  <div class="hero-strip">
+    <div class="hs-inner">
+      <div>
+        <div class="hs-badge">Database Template</div>
+        <div class="hs-title">Supabase <em>Schema</em></div>
+        <div style="font-size:.82rem;color:var(--muted);margin-top:6px;">PostgreSQL · Row Level Security · Real-time Ready</div>
+      </div>
+      <button class="btn btn-gold" onclick="downloadSQL()">⬇ Download SQL</button>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="alert info">
+      <span style="font-size:1.1rem">ℹ</span>
+      <div>Salin SQL ke <strong>Supabase → SQL Editor → New Query</strong>, lalu klik <strong>Run</strong>.</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:28px" id="schemaCards"></div>
+    <div id="sqlBlocks"></div>
+  </div>
+</div>
 
 <!-- MODAL: ADD / EDIT -->
 <div class="modal-backdrop" id="modalBackdrop" onclick="handleBackdropClick(event)">
@@ -473,8 +494,8 @@
 // ════════════════════════════════════════════════════════════
 // CONFIG — Ganti dengan credentials Supabase kamu
 // ════════════════════════════════════════════════════════════
-const SUPABASE_URL     = 'https://YOUR_PROJECT_ID.supabase.co';
-const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY_HERE';
+const SUPABASE_URL     = 'https://ezuvtmsokmbbhxowfgdh.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6dXZ0bXNva21iYmh4b3dmZ2RoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3MTk4NjMsImV4cCI6MjA5MzI5NTg2M30.GHil3qk-_DGGewZMlOrICGREMYMoiiryJFyM2g1LVU8';
 
 // ════════════════════════════════════════════════════════════
 // INIT SUPABASE
@@ -682,10 +703,11 @@ function switchPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + id).classList.add('active');
   document.querySelectorAll('.nav-tab').forEach((t, i) => {
-    t.classList.toggle('active', ['dashboard','ingredients'][i] === id);
+    t.classList.toggle('active', ['dashboard','ingredients','supabase'][i] === id);
   });
   if (id === 'dashboard')   renderDashboard();
   if (id === 'ingredients') renderIngredientPage();
+  if (id === 'supabase')    renderSupabase();
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1052,7 +1074,71 @@ async function deleteIngredient() {
   }
 }
 
+// ════════════════════════════════════════════════════════════
+// SUPABASE PAGE
+// ════════════════════════════════════════════════════════════
+function renderSupabase() {
+  const tables = [
+    {name:'suppliers',cols:6,desc:'Data supplier/vendor bahan baku'},
+    {name:'ingredients',cols:12,desc:'Master data bahan baku + parameter EOQ'},
+    {name:'inventory_transactions',cols:9,desc:'Riwayat keluar-masuk stok'},
+    {name:'purchase_orders',cols:8,desc:'Header Purchase Order'},
+    {name:'po_items',cols:6,desc:'Detail item per Purchase Order'},
+    {name:'eoq_log',cols:8,desc:'Log historis perhitungan EOQ'},
+  ];
+  document.getElementById('schemaCards').innerHTML = tables.map(t => `
+    <div class="stat-card" style="padding:16px">
+      <div style="font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:6px">${t.name}</div>
+      <div style="font-size:.82rem;color:var(--muted2)">${t.desc}</div>
+      <div style="font-size:.7rem;color:var(--muted);margin-top:6px">${t.cols} kolom</div>
+    </div>`).join('');
 
+  document.getElementById('sqlBlocks').innerHTML = sqlBlocks().map(b => `
+    <div style="margin-bottom:20px">
+      <div class="sql-block">
+        <div class="sql-header">
+          <span>${b.title}</span>
+          <button class="btn btn-ghost btn-sm" onclick='copySQL(${JSON.stringify(b.sql)})'>Copy</button>
+        </div>
+        <div class="sql-body"><pre>${highlight(b.sql)}</pre></div>
+      </div>
+    </div>`).join('');
+}
+
+function copySQL(text) {
+  navigator.clipboard.writeText(text)
+    .then(() => toast('SQL disalin!'))
+    .catch(() => toast('Gagal menyalin.', 'error'));
+}
+
+function downloadSQL() {
+  const allSQL = sqlBlocks().map(b => b.sql).join('\n\n');
+  const blob = new Blob([allSQL], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'doublejokitchen_supabase.sql';
+  a.click();
+}
+
+function highlight(sql) {
+  return sql
+    .replace(/\b(CREATE|TABLE|IF|NOT|EXISTS|PRIMARY|KEY|DEFAULT|REFERENCES|ON|DELETE|CASCADE|INSERT|INTO|VALUES|SELECT|FROM|WHERE|AND|OR|INDEX|UNIQUE|WITH|CHECK|POLICY|ENABLE|ROW|LEVEL|SECURITY|ALTER|FOR|USING|TO|VIEW|AS|FUNCTION|RETURNS|LANGUAGE|BEGIN|END|RETURN|TRIGGER|AFTER|EACH|EXECUTE|PROCEDURE|GRANT|ALL|PRIVILEGES|PUBLIC|IN|IS|NULL)\b/g,'<span class="kw">$1</span>')
+    .replace(/\b(gen_random_uuid|now|CURRENT_TIMESTAMP|uuid_generate_v4|SQRT|ROUND|COALESCE)\b/g,'<span class="fn">$1</span>')
+    .replace(/\b(UUID|TEXT|VARCHAR|INTEGER|DECIMAL|TIMESTAMPTZ|BOOLEAN|SERIAL|BIGINT|FLOAT|NUMERIC)\b/g,'<span class="ty">$1</span>')
+    .replace(/'([^']*)'/g,"<span class='str'>'$1'</span>")
+    .replace(/(--[^\n]*)/g,'<span class="cm">$1</span>');
+}
+
+function sqlBlocks() {
+  return [
+    {title:'1. Extensions & Setup',sql:`CREATE EXTENSION IF NOT EXISTS "pgcrypto";\nCREATE EXTENSION IF NOT EXISTS "uuid-ossp";`},
+    {title:'2. Table: suppliers',sql:`CREATE TABLE IF NOT EXISTS suppliers (\n  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n  name           VARCHAR(255) NOT NULL,\n  contact_person VARCHAR(255),\n  phone          VARCHAR(50),\n  email          VARCHAR(255),\n  address        TEXT,\n  is_active      BOOLEAN DEFAULT TRUE,\n  created_at     TIMESTAMPTZ DEFAULT now(),\n  updated_at     TIMESTAMPTZ DEFAULT now()\n);\nCREATE INDEX idx_suppliers_name ON suppliers(name);`},
+    {title:'3. Table: ingredients',sql:`CREATE TABLE IF NOT EXISTS ingredients (\n  id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n  name                  VARCHAR(255) NOT NULL,\n  category              VARCHAR(100) NOT NULL,\n  unit                  VARCHAR(50) NOT NULL,\n  annual_demand         DECIMAL(12,2) NOT NULL CHECK (annual_demand > 0),\n  ordering_cost         DECIMAL(12,2) NOT NULL CHECK (ordering_cost > 0),\n  holding_cost_per_unit DECIMAL(12,2) NOT NULL CHECK (holding_cost_per_unit > 0),\n  lead_time_days        INTEGER NOT NULL DEFAULT 1 CHECK (lead_time_days > 0),\n  safety_stock          DECIMAL(12,2) DEFAULT 0,\n  current_stock         DECIMAL(12,2) DEFAULT 0,\n  supplier_name         VARCHAR(255),\n  supplier_id           UUID REFERENCES suppliers(id) ON DELETE SET NULL,\n  is_active             BOOLEAN DEFAULT TRUE,\n  created_at            TIMESTAMPTZ DEFAULT now(),\n  updated_at            TIMESTAMPTZ DEFAULT now()\n);\nCREATE INDEX idx_ingredients_category ON ingredients(category);`},
+    {title:'4. Table: inventory_transactions',sql:`CREATE TABLE IF NOT EXISTS inventory_transactions (\n  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n  ingredient_id    UUID NOT NULL REFERENCES ingredients(id) ON DELETE CASCADE,\n  transaction_type VARCHAR(20) NOT NULL CHECK (transaction_type IN ('in','out','adjustment','waste')),\n  quantity         DECIMAL(12,2) NOT NULL,\n  stock_before     DECIMAL(12,2),\n  stock_after      DECIMAL(12,2),\n  notes            TEXT,\n  transaction_date TIMESTAMPTZ DEFAULT now(),\n  created_at       TIMESTAMPTZ DEFAULT now()\n);\nCREATE INDEX idx_inv_tx_ingredient ON inventory_transactions(ingredient_id);`},
+    {title:'5. RLS Policies',sql:`ALTER TABLE ingredients ENABLE ROW LEVEL SECURITY;\nALTER TABLE inventory_transactions ENABLE ROW LEVEL SECURITY;\n\n-- Izinkan anon read & write (untuk internal tool)\nCREATE POLICY "anon all ingredients"\n  ON ingredients FOR ALL TO anon\n  USING (TRUE) WITH CHECK (TRUE);\n\nCREATE POLICY "anon all transactions"\n  ON inventory_transactions FOR ALL TO anon\n  USING (TRUE) WITH CHECK (TRUE);`},
+    {title:'6. Seed Data',sql:`INSERT INTO ingredients (name,category,unit,annual_demand,ordering_cost,holding_cost_per_unit,lead_time_days,safety_stock,current_stock,supplier_name,is_active)\nVALUES\n  ('Tepung Terigu Protein Tinggi','Tepung & Pati','kg',1200,45000,3200,3,20,85,'PT. Bogasari',TRUE),\n  ('Gula Pasir','Gula & Pemanis','kg',950,38000,2800,2,25,30,'Madurasa Supplier',TRUE),\n  ('Mentega Tawar','Dairy & Lemak','kg',750,55000,8500,5,30,18,'PT. Salim Ivomas',TRUE),\n  ('Cream Cheese','Dairy & Lemak','kg',420,60000,12000,7,12,8,'Anchor Distributor',TRUE),\n  ('Telur Ayam','Telur','kg',1100,35000,4800,2,30,45,'CV. Peternak Lokal',TRUE),\n  ('Dark Chocolate 70%','Flavor & Aroma','kg',320,65000,15000,7,8,12,'Barry Callebaut ID',TRUE);`},
+  ];
+}
 
 // ════════════════════════════════════════════════════════════
 // INIT
