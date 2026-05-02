@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
     --bg:        #08080c;
@@ -451,36 +452,87 @@ pre{font-family:'Courier New',monospace;font-size:.77rem;line-height:1.7;color:v
 <!-- ═══════════════════════════════════════════════════════════ -->
 <script>
 // ── DATA ─────────────────────────────────────────────────────
-const STORAGE_KEY = 'djk_ingredients_v3';
-const CATS = {
-    'Tepung & Pati':'tepung','Gula & Pemanis':'gula','Dairy & Lemak':'dairy',
-    'Telur':'telur','Flavor & Aroma':'flavor','Kemasan':'kemasan','Lainnya':'lainnya'
-};
 
-const SAMPLE = [
-    {id:uid(),name:'Tepung Terigu Protein Tinggi',cat:'Tepung & Pati',unit:'kg',demand:1200,s:45000,h:3200,lead:3,ss:20,stock:85,supplier:'PT. Bogasari'},
-    {id:uid(),name:'Tepung Terigu Protein Sedang',cat:'Tepung & Pati',unit:'kg',demand:800,s:45000,h:3200,lead:3,ss:15,stock:40,supplier:'PT. Bogasari'},
-    {id:uid(),name:'Gula Pasir',cat:'Gula & Pemanis',unit:'kg',demand:950,s:38000,h:2800,lead:2,ss:25,stock:30,supplier:'Madurasa Supplier'},
-    {id:uid(),name:'Gula Halus (Icing Sugar)',cat:'Gula & Pemanis',unit:'kg',demand:600,s:42000,h:3500,lead:4,ss:10,stock:22,supplier:'Madurasa Supplier'},
-    {id:uid(),name:'Mentega Tawar',cat:'Dairy & Lemak',unit:'kg',demand:750,s:55000,h:8500,lead:5,ss:30,stock:18,supplier:'PT. Salim Ivomas'},
-    {id:uid(),name:'Cream Cheese',cat:'Dairy & Lemak',unit:'kg',demand:420,s:60000,h:12000,lead:7,ss:12,stock:8,supplier:'Anchor Distributor'},
-    {id:uid(),name:'Heavy Whipping Cream',cat:'Dairy & Lemak',unit:'liter',demand:360,s:58000,h:9500,lead:5,ss:10,stock:14,supplier:'Anchor Distributor'},
-    {id:uid(),name:'Susu Cair UHT',cat:'Dairy & Lemak',unit:'liter',demand:480,s:40000,h:5200,lead:3,ss:20,stock:55,supplier:'PT. Ultrajaya'},
-    {id:uid(),name:'Telur Ayam',cat:'Telur',unit:'kg',demand:1100,s:35000,h:4800,lead:2,ss:30,stock:45,supplier:'CV. Peternak Lokal'},
-    {id:uid(),name:'Dark Chocolate 70%',cat:'Flavor & Aroma',unit:'kg',demand:320,s:65000,h:15000,lead:7,ss:8,stock:12,supplier:'Barry Callebaut ID'},
-    {id:uid(),name:'Vanilla Essence',cat:'Flavor & Aroma',unit:'liter',demand:180,s:48000,h:22000,lead:10,ss:5,stock:6,supplier:'McCormick Distributor'},
-    {id:uid(),name:'Baking Powder',cat:'Flavor & Aroma',unit:'kg',demand:240,s:35000,h:6500,lead:3,ss:8,stock:18,supplier:'Koepoe-Koepoe'},
-    {id:uid(),name:'Box Kemasan Premium',cat:'Kemasan',unit:'pcs',demand:5000,s:70000,h:500,lead:14,ss:200,stock:800,supplier:'CV. Karton Makmur'},
-    {id:uid(),name:'Ribbon & Pita',cat:'Kemasan',unit:'roll',demand:300,s:35000,h:8000,lead:7,ss:10,stock:25,supplier:'Toko Aksesoris'},
-];
+// ── SUPABASE CONFIG ───────────────────────────────────────────
+// Untuk Vercel: gunakan environment variable
+// Untuk local dev: isi langsung (jangan commit ke Git!)
+const SUPABASE_URL = 'https://ezuvtmsokmbbhxowfgdh.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6dXZ0bXNva21iYmh4b3dmZ2RoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3MTk4NjMsImV4cCI6MjA5MzI5NTg2M30.GHil3qk-_DGGewZMlOrICGREMYMoiiryJFyM2g1LVU8';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+
+// ── LOAD DATA dari Supabase ───────────────────────────────────
+async function loadFromDB() {
+    const { data, error } = await supabase
+        .from('ingredients')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: true });
+
+    if (error) {
+        console.error('Supabase error:', error);
+        return [];
+    }
+
+    // Map kolom DB ke format app
+    return data.map(row => ({
+        id: row.id,
+        name: row.name,
+        cat: row.category,
+        unit: row.unit,
+        demand: parseFloat(row.annual_demand),
+        s: parseFloat(row.ordering_cost),
+        h: parseFloat(row.holding_cost_per_unit),
+        lead: row.lead_time_days,
+        ss: parseFloat(row.safety_stock) || 0,
+        stock: parseFloat(row.current_stock) || 0,
+        supplier: row.supplier_name || ''
+    }));
+}
+
+// ── SAVE (INSERT / UPDATE) ────────────────────────────────────
+async function saveToDB(item, isEdit = false) {
+    const row = {
+        name: item.name,
+        category: item.cat,
+        unit: item.unit,
+        annual_demand: item.demand,
+        ordering_cost: item.s,
+        holding_cost_per_unit: item.h,
+        lead_time_days: item.lead,
+        safety_stock: item.ss,
+        current_stock: item.stock,
+        supplier_name: item.supplier,
+        updated_at: new Date().toISOString()
+    };
+
+    if (isEdit) {
+        const { error } = await supabase
+            .from('ingredients')
+            .update(row)
+            .eq('id', item.id);
+        if (error) throw error;
+    } else {
+        const { data, error } = await supabase
+            .from('ingredients')
+            .insert(row)
+            .select()
+            .single();
+        if (error) throw error;
+        return data.id; // return UUID baru
+    }
+}
+
+// ── DELETE ────────────────────────────────────────────────────
+async function deleteFromDB(id) {
+    const { error } = await supabase
+        .from('ingredients')
+        .update({ is_active: false }) // soft delete
+        .eq('id', id);
+    if (error) throw error;
+}
 
 function uid(){return 'id_'+Date.now()+'_'+Math.random().toString(36).slice(2,7)}
-
-function load(){
-    try{const d=localStorage.getItem(STORAGE_KEY);return d?JSON.parse(d):SAMPLE}
-    catch(e){return SAMPLE}
-}
-function save(data){localStorage.setItem(STORAGE_KEY,JSON.stringify(data))}
 
 let ingredients=load();
 
@@ -868,40 +920,49 @@ function updateLivePreview(){
 function closeModal(){document.getElementById('modalBackdrop').classList.remove('open')}
 function handleBackdropClick(e){if(e.target.id==='modalBackdrop')closeModal()}
 
-function saveIngredient(){
-    const item={
-        id:editId||uid(),
-        name:document.getElementById('f_name').value.trim(),
-        cat:document.getElementById('f_cat').value,
-        unit:document.getElementById('f_unit').value,
-        demand:parseFloat(document.getElementById('f_demand').value)||0,
-        s:parseFloat(document.getElementById('f_s').value)||0,
-        h:parseFloat(document.getElementById('f_h').value)||0,
-        lead:parseFloat(document.getElementById('f_lead').value)||1,
-        ss:parseFloat(document.getElementById('f_ss').value)||0,
-        stock:parseFloat(document.getElementById('f_stock').value)||0,
-        supplier:document.getElementById('f_supplier').value.trim(),
+async function saveIngredient() {
+    const item = {
+        id: editId || null,
+        name: document.getElementById('f_name').value.trim(),
+        cat: document.getElementById('f_cat').value,
+        unit: document.getElementById('f_unit').value,
+        demand: parseFloat(document.getElementById('f_demand').value) || 0,
+        s: parseFloat(document.getElementById('f_s').value) || 0,
+        h: parseFloat(document.getElementById('f_h').value) || 0,
+        lead: parseFloat(document.getElementById('f_lead').value) || 1,
+        ss: parseFloat(document.getElementById('f_ss').value) || 0,
+        stock: parseFloat(document.getElementById('f_stock').value) || 0,
+        supplier: document.getElementById('f_supplier').value.trim(),
     };
-    if(!item.name||!item.demand||!item.s||!item.h){alert('Mohon lengkapi semua field wajib.');return}
-    if(editId){
-        const idx=ingredients.findIndex(i=>i.id===editId);
-        if(idx>=0)ingredients[idx]=item;
-    }else{ingredients.push(item)}
-    save(ingredients);
-    closeModal();
-    if(document.getElementById('page-ingredients').classList.contains('active'))renderIngredientPage();
-    else renderDashboard();
+
+    if (!item.name || !item.demand || !item.s || !item.h) {
+        alert('Mohon lengkapi semua field wajib.');
+        return;
+    }
+
+    try {
+        await saveToDB(item, !!editId);
+        ingredients = await loadFromDB(); // refresh
+        closeModal();
+        renderDashboard();
+    } catch (e) {
+        alert('Error menyimpan: ' + e.message);
+    }
 }
 
-function deleteIngredient(){
-    if(!editId)return;
-    if(!confirm('Hapus bahan baku ini?'))return;
-    ingredients=ingredients.filter(i=>i.id!==editId);
-    save(ingredients);
-    closeModal();
-    if(selectedId===editId){selectedId=null;document.getElementById('detailPanel').classList.remove('open')}
-    if(document.getElementById('page-ingredients').classList.contains('active'))renderIngredientPage();
-    else renderDashboard();
+async function deleteIngredient() {
+    if (!editId) return;
+    if (!confirm('Hapus bahan baku ini?')) return;
+    try {
+        await deleteFromDB(editId);
+        ingredients = await loadFromDB();
+        closeModal();
+        selectedId = null;
+        document.getElementById('detailPanel').classList.remove('open');
+        renderDashboard();
+    } catch (e) {
+        alert('Error menghapus: ' + e.message);
+    }
 }
 
 // ── SUPABASE PAGE ─────────────────────────────────────────────
@@ -1153,12 +1214,15 @@ VALUES
 ];}
 
 // ── INIT ──────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded',()=>{
+document.addEventListener('DOMContentLoaded', async () => {
     // Load annotation plugin
-    const s=document.createElement('script');
-    s.src='https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/1.4.0/chartjs-plugin-annotation.min.js';
-    s.onload=()=>renderDashboard();
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/1.4.0/chartjs-plugin-annotation.min.js';
     document.head.appendChild(s);
+
+    // Load data dari Supabase
+    ingredients = await loadFromDB();
+    renderDashboard();
 });
 </script>
 </body>
